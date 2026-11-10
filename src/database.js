@@ -55,6 +55,14 @@ db.exec(`
     UNIQUE (guild_id, level, role_id)
   );
 
+  CREATE TABLE IF NOT EXISTS leveling_exclusions (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    guild_id TEXT NOT NULL,
+    target_id TEXT NOT NULL,
+    target_type TEXT NOT NULL CHECK (target_type IN ('channel', 'role')),
+    UNIQUE (guild_id, target_id, target_type)
+  );
+
   CREATE INDEX IF NOT EXISTS idx_users_leaderboard
   ON users (guild_id, xp DESC);
 
@@ -63,6 +71,9 @@ db.exec(`
 
   CREATE INDEX IF NOT EXISTS idx_level_rewards
   ON level_rewards (guild_id, level);
+
+  CREATE INDEX IF NOT EXISTS idx_leveling_exclusions
+  ON leveling_exclusions (guild_id, target_type, target_id);
 `);
 
 console.log("Railroad database initialized.");
