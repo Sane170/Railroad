@@ -147,3 +147,12 @@ vite.config.ts.timestamp-*
 
 # Turbo Repo
 .turbo
+
+# Railroad private database
+data/
+*.sqlite
+*.sqlite-shm
+*.sqlite-wal
+
+# Operating system files
+.DS_Store
