@@ -31,6 +31,36 @@ async function handleMessage(message, db) {
 
   if (!settings || !settings.enabled) return;
 
+  // Check excluded channels
+  const excludedChannel = db.prepare(`
+    SELECT 1
+    FROM leveling_exclusions
+    WHERE guild_id = ?
+    AND target_id = ?
+    AND target_type = 'channel'
+  `).get(guildId, message.channelId);
+
+  if (excludedChannel) return;
+
+  // Check excluded roles
+  const excludedRoles = db.prepare(`
+    SELECT target_id
+    FROM leveling_exclusions
+    WHERE guild_id = ?
+    AND target_type = 'role'
+  `).all(guildId);
+
+  if (excludedRoles.length > 0) {
+    const member = message.member ??
+      await message.guild.members.fetch(userId);
+
+    const hasExcludedRole = excludedRoles.some(({ target_id }) =>
+      member.roles.cache.has(target_id)
+    );
+
+    if (hasExcludedRole) return;
+  }
+
   db.prepare(`
     INSERT OR IGNORE INTO users (guild_id, user_id)
     VALUES (?, ?)
@@ -85,12 +115,15 @@ async function handleMessage(message, db) {
         AND level <= ?
       `).all(guildId, user.level, newLevel);
 
+      const botMember = message.guild.members.me ??
+        await message.guild.members.fetchMe();
+
       const rolesToAdd = rewards
         .map(reward => message.guild.roles.cache.get(reward.role_id))
         .filter(role =>
           role &&
           !role.managed &&
-          role.position < message.guild.members.me.roles.highest.position &&
+          role.position < botMember.roles.highest.position &&
           !member.roles.cache.has(role.id)
         );
 
