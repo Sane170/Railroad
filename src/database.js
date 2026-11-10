@@ -15,7 +15,6 @@ const db = new Database(databasePath);
 db.pragma("journal_mode = WAL");
 db.pragma("foreign_keys = ON");
 
-// Server settings
 db.exec(`
   CREATE TABLE IF NOT EXISTS guild_settings (
     guild_id TEXT PRIMARY KEY,
@@ -47,11 +46,23 @@ db.exec(`
     created_at TEXT DEFAULT CURRENT_TIMESTAMP
   );
 
+  CREATE TABLE IF NOT EXISTS level_rewards (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    guild_id TEXT NOT NULL,
+    level INTEGER NOT NULL,
+    role_id TEXT NOT NULL,
+    created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE (guild_id, level, role_id)
+  );
+
   CREATE INDEX IF NOT EXISTS idx_users_leaderboard
   ON users (guild_id, xp DESC);
 
   CREATE INDEX IF NOT EXISTS idx_xp_history_user
   ON xp_history (guild_id, user_id);
+
+  CREATE INDEX IF NOT EXISTS idx_level_rewards
+  ON level_rewards (guild_id, level);
 `);
 
 console.log("Railroad database initialized.");
