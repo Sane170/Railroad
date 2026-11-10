@@ -20,7 +20,6 @@ async function handleMessage(message, db) {
   const userId = message.author.id;
   const now = Date.now();
 
-  // Create default server settings if needed
   db.prepare(`
     INSERT OR IGNORE INTO guild_settings (guild_id)
     VALUES (?)
@@ -32,7 +31,6 @@ async function handleMessage(message, db) {
 
   if (!settings || !settings.enabled) return;
 
-  // Get or create the member's leveling record
   db.prepare(`
     INSERT OR IGNORE INTO users (guild_id, user_id)
     VALUES (?, ?)
@@ -43,7 +41,6 @@ async function handleMessage(message, db) {
     WHERE guild_id = ? AND user_id = ?
   `).get(guildId, userId);
 
-  // Apply the message cooldown
   if (now - user.last_message < settings.cooldown * 1000) {
     return;
   }
@@ -57,29 +54,69 @@ async function handleMessage(message, db) {
   const newXP = user.xp + earnedXP;
   const newLevel = getLevelFromXP(newXP);
 
-  // Save XP and level
   db.prepare(`
     UPDATE users
     SET xp = ?, total_xp = ?, level = ?, last_message = ?
     WHERE guild_id = ? AND user_id = ?
-  `).run(newXP, user.total_xp + earnedXP, newLevel, now, guildId, userId);
+  `).run(
+    newXP,
+    user.total_xp + earnedXP,
+    newLevel,
+    now,
+    guildId,
+    userId
+  );
 
-  // Record XP history
   db.prepare(`
     INSERT INTO xp_history (guild_id, user_id, amount, reason)
     VALUES (?, ?, ?, ?)
   `).run(guildId, userId, earnedXP, "Message");
 
-  // Announce level-ups
-  if (newLevel > user.level && settings.announcement_enabled) {
-    const channel = settings.announcement_channel
-      ? message.guild.channels.cache.get(settings.announcement_channel)
-      : message.channel;
+  // Handle level rewards
+  if (newLevel > user.level) {
+    try {
+      const member = await message.guild.members.fetch(userId);
 
-    if (channel && channel.isTextBased()) {
-      channel.send({
-        content: `🎉 Congratulations ${message.author}! You reached **Level ${newLevel}**!`
-      }).catch(() => {});
+      const rewards = db.prepare(`
+        SELECT role_id
+        FROM level_rewards
+        WHERE guild_id = ?
+        AND level > ?
+        AND level <= ?
+      `).all(guildId, user.level, newLevel);
+
+      const rolesToAdd = rewards
+        .map(reward => message.guild.roles.cache.get(reward.role_id))
+        .filter(role =>
+          role &&
+          !role.managed &&
+          role.position < message.guild.members.me.roles.highest.position &&
+          !member.roles.cache.has(role.id)
+        );
+
+      if (rolesToAdd.length > 0) {
+        await member.roles.add(
+          rolesToAdd,
+          `Railroad level reward: reached level ${newLevel}`
+        );
+      }
+    } catch (error) {
+      console.error("Level reward assignment error:", error);
+    }
+
+    // Announce level-up
+    if (settings.announcement_enabled) {
+      const channel = settings.announcement_channel
+        ? message.guild.channels.cache.get(settings.announcement_channel)
+        : message.channel;
+
+      if (channel && channel.isTextBased()) {
+        await channel.send({
+          content: `🎉 Congratulations ${message.author}! You reached **Level ${newLevel}**!`
+        }).catch(error => {
+          console.error("Level-up announcement error:", error);
+        });
+      }
     }
   }
 }
