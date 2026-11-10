@@ -12,19 +12,26 @@ module.exports = {
   async execute(interaction) {
     const embed = new EmbedBuilder()
       .setColor(0x5865F2)
-      .setTitle("🚂 Railroad | Help Center")
+      .setTitle("Railroad | Help Center")
       .setDescription(
-        "Welcome to Railroad! Here's a guide to the available commands."
+        "Welcome to Railroad! Here is your guide to the available commands."
       )
       .addFields(
         {
           name: "📊 Leveling",
           value:
-            "`/rank` — View your rank or another member's rank.\n" +
+            "`/rank` — View a member's rank.\n" +
             "`/profile` — View a leveling profile.\n" +
             "`/level view` — View a member's level.\n" +
-            "`/level requirements` — Check XP needed for a level.\n" +
+            "`/level requirements` — Check XP requirements.\n" +
             "`/leaderboard` — View the server leaderboard."
+        },
+        {
+          name: "🏆 Statistics & Activity",
+          value:
+            "`/levelstats` — View server leveling statistics.\n" +
+            "`/activity` — View the last 7 days of XP activity.\n" +
+            "`/compare` — Compare your progress with another member."
         },
         {
           name: "⭐ XP Management",
@@ -38,7 +45,7 @@ module.exports = {
         {
           name: "🎁 Level Rewards",
           value:
-            "`/reward add` — Create a level reward.\n" +
+            "`/reward add` — Add a level reward.\n" +
             "`/reward remove` — Remove a level reward.\n" +
             "`/reward list` — View configured rewards.\n" +
             "`/reward test` — Preview rewards for a member."
@@ -48,11 +55,6 @@ module.exports = {
           value:
             "`/settings` — Configure leveling settings.\n" +
             "`/exclusions` — Manage excluded channels and roles."
-        },
-        {
-          name: "❓ Need Help?",
-          value:
-            "Use `/help` whenever you need a reminder of Railroad's commands."
         }
       )
       .setFooter({
